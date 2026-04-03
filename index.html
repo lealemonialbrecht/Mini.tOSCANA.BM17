@@ -585,7 +585,7 @@ function toonEindresultaat() {
   // Met markering of het goed of fout is
   const antwoordenStr = Array.from({length: AANTAL_RONDES}, (_, r) => {
     const startIdx    = r * VRAGEN_PER_RONDE;
-    const rondeVragen = rondeVolgorde[r];
+    const rondeVragen = rondeVolgorde[r].vragen;  // .vragen want object {tafelnummer, vragen}
     return rondeVragen.map((v, i) => {
       const gegeven  = antwoorden[startIdx + i] || '—';
       const correct  = gegeven.toLowerCase() === v.term.toLowerCase();
