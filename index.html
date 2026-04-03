@@ -80,7 +80,7 @@
   .tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:600}
   .tag.good{background:var(--success-bg);color:var(--success)}
   .tag.bad{background:var(--danger-bg);color:var(--danger)}
-  .score-per-ronde{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+  .score-per-ronde{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
   .score-ronde-card{background:var(--surface);border-radius:var(--radius-sm);padding:12px 8px;text-align:center;box-shadow:var(--shadow)}
   .score-ronde-card .label{font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
   .score-ronde-card .value{font-size:20px;font-weight:600;color:var(--accent)}
@@ -209,8 +209,8 @@
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyIFsrevSH9nUpV8bZZeiKJtaXQXpNSlP-CP-eZ4U9AOEv1UQ6bR0W9UP5yykhSPlCXxA/exec';
  
 const VRAGEN_PER_RONDE = 6;
-const AANTAL_RONDES    = 4;
-const TOTAAL_VRAGEN    = VRAGEN_PER_RONDE * AANTAL_RONDES; // 24
+const AANTAL_RONDES    = 3;  // 3 Runden (eigener Tisch wird übersprungen)
+const TOTAAL_VRAGEN    = VRAGEN_PER_RONDE * AANTAL_RONDES; // 18
  
 function getScriptUrl() { return SCRIPT_URL; }
  
@@ -254,7 +254,7 @@ function setLoadingMsg(msg) {
    ===================================================== */
 let allVragen   = [];   // Alle 24 vragen gesorteerd op nummer
 let allTerms    = [];   // Alle termen voor zoekfunctie
-let rondeVolgorde = []; // Array van 4 rondes, elk array van 6 vragen
+let rondeVolgorde = []; // Array von 3 Runden
 let antwoorden  = [];   // Platte array van 24 antwoorden
 let huidigeRonde = 0;   // 0-3
 let huidigeVraag = 0;   // 0-5 binnen de ronde
@@ -263,25 +263,29 @@ let starttafel  = 0;
  
 /* =====================================================
    RONDE VOLGORDE BEREKENEN
-   Starttafel 1 → rondes [0,1,2,3] (vragen 1-6, 7-12, 13-18, 19-24)
-   Starttafel 2 → rondes [1,2,3,0]
-   Starttafel 3 → rondes [2,3,0,1]
-   Starttafel 4 → rondes [3,0,1,2]
+   Roterend, eigen tafel wordt overgeslagen.
+   Starttisch 1 → ronde 1=Tisch2, ronde 2=Tisch3, ronde 3=Tisch4
+   Starttisch 2 → ronde 1=Tisch3, ronde 2=Tisch4, ronde 3=Tisch1
+   Starttisch 3 → ronde 1=Tisch4, ronde 2=Tisch1, ronde 3=Tisch2
+   Starttisch 4 → ronde 1=Tisch1, ronde 2=Tisch2, ronde 3=Tisch3
+   Score = 18 Fragen (3 Runden x 6)
    ===================================================== */
 function berekenRondeVolgorde(tafel) {
-  const offset = tafel - 1; // 0-based
   const volgorde = [];
-  for (let r = 0; r < AANTAL_RONDES; r++) {
-    const rondeIdx = (offset + r) % AANTAL_RONDES;
-    const start    = rondeIdx * VRAGEN_PER_RONDE;
-    volgorde.push(allVragen.slice(start, start + VRAGEN_PER_RONDE));
+  for (let r = 1; r <= 3; r++) {
+    // Start bij eigen tafel + 1, roteer met modulo over 4 tafels
+    const tafelnummer = (tafel - 1 + r) % 4 + 1;
+    const start       = (tafelnummer - 1) * VRAGEN_PER_RONDE;
+    volgorde.push({
+      tafelnummer: tafelnummer,
+      vragen: allVragen.slice(start, start + VRAGEN_PER_RONDE)
+    });
   }
   return volgorde;
 }
  
 function tafelnummerVoorRonde(ronde) {
-  // Welke tafel hoort bij deze ronde voor deze student?
-  return ((starttafel - 1 + ronde) % AANTAL_RONDES) + 1;
+  return rondeVolgorde[ronde] ? rondeVolgorde[ronde].tafelnummer : '?';
 }
  
 /* =====================================================
@@ -345,7 +349,7 @@ document.getElementById('btn-start').addEventListener('click', async () => {
  
 function updateHeaderSub() {
   document.getElementById('header-sub').textContent =
-    `${userName} — Tisch ${tafelnummerVoorRonde(huidigeRonde)}`;
+    `${userName} — Starttisch ${starttafel}`;
 }
  
 /* =====================================================
@@ -355,7 +359,8 @@ function renderRondeIndicator() {
   const el = document.getElementById('ronde-indicator');
   el.innerHTML = Array.from({length: AANTAL_RONDES}, (_, i) => {
     const cls = i < huidigeRonde ? 'done' : i === huidigeRonde ? 'active' : '';
-    return `<div class="ronde-dot ${cls}"></div>`;
+    const tafelNr = rondeVolgorde[i] ? rondeVolgorde[i].tafelnummer : '';
+    return `<div class="ronde-dot ${cls}" title="Tisch ${tafelNr}"></div>`;
   }).join('');
 }
  
@@ -363,7 +368,7 @@ function renderRondeIndicator() {
    VRAAG RENDEREN
    ===================================================== */
 function renderVraag() {
-  const rondeVragen = rondeVolgorde[huidigeRonde];
+  const rondeVragen = rondeVolgorde[huidigeRonde].vragen;
   const vraag       = rondeVragen[huidigeVraag];
   const totaalIdx   = huidigeRonde * VRAGEN_PER_RONDE + huidigeVraag; // globale index voor antwoorden[]
  
@@ -487,7 +492,7 @@ document.getElementById('btn-prev').addEventListener('click', () => {
    RONDE AFRONDEN
    ===================================================== */
 function rondeAfronden() {
-  const rondeVragen   = rondeVolgorde[huidigeRonde];
+  const rondeVragen   = rondeVolgorde[huidigeRonde].vragen;
   const startIdx      = huidigeRonde * VRAGEN_PER_RONDE;
   const rondeScore    = antwoorden
     .slice(startIdx, startIdx + VRAGEN_PER_RONDE)
@@ -529,7 +534,7 @@ function toonEindresultaat() {
  
   for (let r = 0; r < AANTAL_RONDES; r++) {
     const startIdx    = r * VRAGEN_PER_RONDE;
-    const rondeVragen = rondeVolgorde[r];
+    const rondeVragen = rondeVolgorde[r].vragen;
     const score = antwoorden
       .slice(startIdx, startIdx + VRAGEN_PER_RONDE)
       .filter((a, i) => a && a.toLowerCase() === rondeVragen[i].term.toLowerCase()).length;
@@ -549,7 +554,7 @@ function toonEindresultaat() {
   // Score per ronde kaartjes
   document.getElementById('score-per-ronde').innerHTML = rondeScores.map((s, r) =>
     `<div class="score-ronde-card">
-      <div class="label">Runde ${r+1}</div>
+      <div class="label">Tisch ${tafelnummerVoorRonde(r)}</div>
       <div class="value">${s}/${VRAGEN_PER_RONDE}</div>
     </div>`
   ).join('');
@@ -557,7 +562,7 @@ function toonEindresultaat() {
   // Antwoorden per ronde
   document.getElementById('answers-per-ronde').innerHTML = Array.from({length: AANTAL_RONDES}, (_, r) => {
     const startIdx    = r * VRAGEN_PER_RONDE;
-    const rondeVragen = rondeVolgorde[r];
+    const rondeVragen = rondeVolgorde[r].vragen;
     const tafel       = tafelnummerVoorRonde(r);
     const items       = rondeVragen.map((v, i) => {
       const given   = antwoorden[startIdx + i] || '—';
