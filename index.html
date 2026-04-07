@@ -434,7 +434,7 @@ searchInp.addEventListener('input', () => {
       const idx    = term.toLowerCase().indexOf(lower);
       const hi     = term.slice(0,idx) + '<mark>' + term.slice(idx, idx+q.length) + '</mark>' + term.slice(idx+q.length);
       if (isUsed) {
-        return `<div class="dropdown-item" style="opacity:.4;cursor:not-allowed;pointer-events:none;display:flex;justify-content:space-between;"><span>${hi}</span><span style="font-size:11px;margin-left:8px">al gebruikt</span></div>`;
+        return `<div class="dropdown-item" style="opacity:.4;cursor:not-allowed;pointer-events:none;display:flex;justify-content:space-between;"><span>${hi}</span><span style="font-size:11px;margin-left:8px">Schon verwendet</span></div>`;
       }
       return `<div class="dropdown-item" onclick="selectAnswer('${term.replace(/'/g,"\\'")}')"><span>${hi}</span></div>`;
     }).join('');
@@ -546,10 +546,10 @@ function toonEindresultaat() {
   document.getElementById('res-total').textContent = `/${totaal}`;
   document.getElementById('res-name').textContent  = userName;
   document.getElementById('res-msg').textContent   =
-    totalScore === totaal     ? 'Perfekte Punktzahl! Ausgezeichnete Arbeit.'         :
-    totalScore >= totaal*.75  ? 'Sehr gut gemacht!'                        :
+    totalScore === totaal     ? 'Perfekte Punktzahl! Ausgezeichnete Arbeit!!!'         :
+    totalScore >= totaal*.75  ? 'Sehr gut gemacht! Gratuliere!'                        :
     totalScore >= totaal*.5   ? 'Ordentliches Ergebnis. Weiter üben!'       :
-                                'Noch viel zu lernen — aber du hast angefangen!';
+                                'Guter Start, aber da ist noch Luft nach oben !';
  
   // Score per ronde kaartjes
   document.getElementById('score-per-ronde').innerHTML = rondeScores.map((s, r) =>
